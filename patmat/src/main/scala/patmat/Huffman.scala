@@ -107,8 +107,8 @@ object Huffman {
    */
   def combine(trees: List[CodeTree]): List[CodeTree] = trees match {
     case left :: right :: xs => insert(xs, makeCodeTree(left, right))
-    case head :: Nil => trees
-    case List() => List()
+    case head :: Nil         => trees
+    case List()              => List()
   }
 
   def insert(li: List[CodeTree], x: CodeTree) = {
@@ -133,8 +133,8 @@ object Huffman {
    *  - try to find sensible parameter names for `xxx`, `yyy` and `zzz`.
    */
   def until(stopBy: List[CodeTree] => Boolean, reduceTree: List[CodeTree] => List[CodeTree])(trees: List[CodeTree]): List[CodeTree] = stopBy(trees) match {
-    case true => trees
-    case false => until(stopBy,reduceTree)(reduceTree(trees))
+    case true  => trees
+    case false => until(stopBy, reduceTree)(reduceTree(trees))
   }
 
   /**
@@ -145,7 +145,7 @@ object Huffman {
    */
   def createCodeTree(chars: List[Char]): CodeTree = {
     val leafs = makeOrderedLeafList(times(chars))
-    until(singleton,combine)(leafs)(0)
+    until(singleton, combine)(leafs)(0)
   }
 
   // Part 3: Decoding
@@ -156,17 +156,22 @@ object Huffman {
    * This function decodes the bit sequence `bits` using the code tree `tree` and returns
    * the resulting list of characters.
    */
-  def decode(tree: CodeTree, bits: List[Bit]): List[Char] = recursiveDecode(tree, bits, Nil)
-    
-    
-  def recursiveDecode(tree:CodeTree, bits:List[Bit], result:List[Char]): List[Char] = tree match {
-    case Leaf(c,w) => if(bits == Nil) c :: result else recursiveDecode(tree, bits, c ::result)
-    case Fork(l,r,chars,weight) => bits match {
-      case 1 :: remainBits => decode(r,remainBits)
-      case 0 :: remainBits => decode(l,remainBits)
-      case _ :: remainBits => throw new IllegalArgumentException("Not legal bits")
-      case Nil => throw new IllegalArgumentException("Null bits")
+  def decode(root: CodeTree, bits: List[Bit]): List[Char] = {
+    def recursiveDecode(tree: CodeTree, bits: List[Bit], result: List[Char]): List[Char] = tree match {
+      case Leaf(c, w) => bits match {
+        case Nil     => result :+ c
+        case x :: xs => recursiveDecode(root, bits, result :+ c)
+      }
+
+      case Fork(l, r, chars, weight) => bits match {
+        case 1 :: remainBits => recursiveDecode(r, remainBits, result)
+        case 0 :: remainBits => recursiveDecode(l, remainBits, result)
+        case _ :: remainBits => throw new IllegalArgumentException("Not legal bits")
+        case Nil             => result
+      }
     }
+
+    recursiveDecode(root, bits, Nil)
   }
 
   /**
@@ -185,8 +190,8 @@ object Huffman {
   /**
    * Write a function that returns the decoded secret
    */
- // def decodedSecret: List[Char] = decode(frenchCode,secret)
-  //do yprintln(decodedSecret)
+  def decodedSecret: List[Char] = decode(frenchCode, secret)
+  println(decodedSecret)
 
   // Part 4a: Encoding using Huffman tree
 
@@ -194,7 +199,20 @@ object Huffman {
    * This function encodes `text` using the code tree `tree`
    * into a sequence of bits.
    */
-  def encode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+  def encode(root: CodeTree)(text: List[Char]): List[Bit] = {
+    def recursiveEncode(tree: CodeTree, text: List[Char], result: List[Bit]): List[Bit] = text match {
+      case Nil => result
+      case x :: xs => tree match {
+        case l: Leaf => recursiveEncode(root, xs, result)
+        case f: Fork => chars(f.left).contains(x) match {
+            case true  => recursiveEncode(f.left, text, result :+ 0)
+            case false => recursiveEncode(f.right, text, result :+ 1)
+        }
+      }
+    }
+    
+    recursiveEncode(root, text, Nil)
+  }
 
   // Part 4b: Encoding using code table
 
@@ -204,7 +222,10 @@ object Huffman {
    * This function returns the bit sequence that represents the character `char` in
    * the code table `table`.
    */
-  def codeBits(table: CodeTable)(char: Char): List[Bit] = ???
+  def codeBits(table: CodeTable)(char: Char): List[Bit] =  table.find(p => p._1 == char) match {
+    case None => Nil
+    case op => op.get._2
+  }
 
   /**
    * Given a code tree, create a code table which contains, for every character in the
@@ -214,14 +235,21 @@ object Huffman {
    * a valid code tree that can be represented as a code table. Using the code tables of the
    * sub-trees, think of how to build the code table for the entire tree.
    */
-  def convert(tree: CodeTree): CodeTable = ???
+  def convert(tree: CodeTree): CodeTable = {
+    def recursiveConvert(node: CodeTree, resultTable: CodeTable, resultBits:List[Bit]): CodeTable = node match {
+      case l:Leaf => resultTable :+ (l.char, resultBits)
+      case f:Fork => mergeCodeTables(recursiveConvert(f.left, resultTable, resultBits :+ 0), recursiveConvert(f.right, resultTable, resultBits :+ 1))
+    }
+    
+    recursiveConvert(tree, Nil, Nil)
+  }
 
   /**
    * This function takes two code tables and merges them into one. Depending on how you
    * use it in the `convert` method above, this merge method might also do some transformations
    * on the two parameter code tables.
    */
-  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = ???
+  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = a ::: b
 
   /**
    * This function encodes `text` according to the code tree `tree`.
@@ -229,5 +257,8 @@ object Huffman {
    * To speed up the encoding process, it first converts the code tree to a code table
    * and then uses it to perform the actual encoding.
    */
-  def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+  def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+    val codeTable = convert(tree)
+    text.map(c => codeBits(codeTable)(c)).flatten.toList
+  }
 }
