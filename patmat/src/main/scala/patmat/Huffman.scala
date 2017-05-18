@@ -73,7 +73,7 @@ object Huffman {
    *   }
    */
   def times(chars: List[Char]): List[(Char, Int)] = {
-    chars.groupBy(identity).mapValues(_.size).toList
+    chars.groupBy(identity).mapValues(_.size).toList.sortWith(_._1 < _._1)
     //chars map (c => (c, chars count {_ == c}))
   }
 
