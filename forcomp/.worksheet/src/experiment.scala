@@ -19,9 +19,30 @@ object experiment {;import org.scalaide.worksheet.runtime.library.WorksheetSuppo
   s.toLowerCase().groupBy(c => c);System.out.println("""res6: scala.collection.immutable.Map[Char,String] = """ + $show(res$6));$skip(74); 
   val temp = s.split(" +").flatMap(w => wordOccurrences(w)).groupBy(_._1);System.out.println("""temp  : scala.collection.immutable.Map[Char,Array[(Char, Int)]] = """ + $show(temp ));$skip(68); val res$7 = 
   //The stupid version
-  temp.map{ case (c,arr) => (c, fold(arr)) };System.out.println("""res7: scala.collection.immutable.Map[Char,(Char, Int)] = """ + $show(res$7))}
+  temp.map{ case (c,arr) => (c, fold(arr)) };System.out.println("""res7: scala.collection.immutable.Map[Char,(Char, Int)] = """ + $show(res$7));$skip(59); 
   
- 
+  val words = List("abbot", "abbots", "Abbott","Abbot");System.out.println("""words  : List[String] = """ + $show(words ));$skip(102); val res$8 = 
+  
+  words map (c => (c,wordOccurrences(c))) groupBy(_._2) mapValues(values => values map(v => v._1));System.out.println("""res8: scala.collection.immutable.Map[forcomp.Anagrams.Occurrences,List[String]] = """ + $show(res$8));$skip(43); val res$9 = 
+  
+ combinations(List(('a', 2), ('b', 2)));System.out.println("""res9: List[forcomp.Anagrams.Occurrences] = """ + $show(res$9));$skip(25); val res$10 = 
+ dictionaryByOccurrences;System.out.println("""res10: Map[forcomp.Anagrams.Occurrences,List[forcomp.Anagrams.Word]] = """ + $show(res$10));$skip(57); val res$11 = 
+  dictionaryByOccurrences getOrElse (List(('e',1)), Nil);System.out.println("""res11: List[forcomp.Anagrams.Word] = """ + $show(res$11));$skip(98); 
+  
+  
+  val occurs = List(('e',1), ('i',1), ('l',3), ('n',1), ('r',1), ('u',2), ('x',1), ('z',1));System.out.println("""occurs  : List[(Char, Int)] = """ + $show(occurs ));$skip(231); 
+                                                  
+  def subtract2(x: Occurrences, y: Occurrences) = y.foldLeft(x) {
+   (acc,eY) =>
+  	for(eX <- acc) yield (eX._1, if (eX._1 == eY._1) eX._2 - eY._2 else eX._2)
+  }.filter(_._2 > 0);System.out.println("""subtract2: (x: forcomp.Anagrams.Occurrences, y: forcomp.Anagrams.Occurrences)List[(Char, Int)]""");$skip(58); val res$12 = 
+  subtract2(occurs, List(('e',1),('i',1),('l',1))).sorted;System.out.println("""res12: List[(Char, Int)] = """ + $show(res$12));$skip(221); val res$13 = 
+  //combinations(occurs) filter dictionaryByOccurrences.contains
+  for{
+  
+  	combi <- combinations(occurs) filter dictionaryByOccurrences.contains
+  	word <- dictionaryByOccurrences getOrElse (combi, Nil)
+  } yield word;System.out.println("""res13: List[forcomp.Anagrams.Word] = """ + $show(res$13))}
   //import forcomp._
   //loadDictionary
 }
